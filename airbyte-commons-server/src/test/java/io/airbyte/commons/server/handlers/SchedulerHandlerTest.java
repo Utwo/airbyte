@@ -82,6 +82,7 @@ import io.airbyte.config.persistence.ConfigNotFoundException;
 import io.airbyte.config.persistence.ConfigRepository;
 import io.airbyte.config.persistence.SecretsRepositoryWriter;
 import io.airbyte.persistence.job.JobPersistence;
+import io.airbyte.persistence.job.WebUrlHelper;
 import io.airbyte.persistence.job.models.Job;
 import io.airbyte.persistence.job.models.JobStatus;
 import io.airbyte.protocol.models.AirbyteCatalog;
@@ -161,6 +162,7 @@ class SchedulerHandlerTest {
   private EnvVariableFeatureFlags envVariableFeatureFlags;
   private WorkflowClient workflowClient;
   private ConnectionNotificationWorkflow notificationWorkflow;
+  private WebUrlHelper webUrlHelper;
 
   @BeforeEach
   void setup() {
@@ -186,6 +188,7 @@ class SchedulerHandlerTest {
     envVariableFeatureFlags = mock(EnvVariableFeatureFlags.class);
     workflowClient = mock(WorkflowClient.class);
     notificationWorkflow = mock(ConnectionNotificationWorkflow.class);
+    webUrlHelper = mock(WebUrlHelper.class);
 
     when(workflowClient.newWorkflowStub(ConnectionNotificationWorkflow.class, TemporalWorkflowUtils.buildWorkflowOptions(TemporalJobType.NOTIFY)))
         .thenReturn(notificationWorkflow);
@@ -202,7 +205,7 @@ class SchedulerHandlerTest {
         eventRunner,
         jobConverter,
         connectionsHandler,
-        envVariableFeatureFlags, workflowClient);
+        envVariableFeatureFlags, workflowClient, webUrlHelper);
   }
 
   @Test
@@ -603,7 +606,8 @@ class SchedulerHandlerTest {
         CatalogHelpers.createAirbyteStream(DOGS, Field.of(NAME, JsonSchemaType.STRING))));
 
     final ConnectionRead connectionRead =
-        new ConnectionRead().syncCatalog(CatalogConverter.toApi(airbyteCatalogCurrent, sourceDef)).connectionId(connectionId).notifySchemaChanges(true);
+        new ConnectionRead().syncCatalog(CatalogConverter.toApi(airbyteCatalogCurrent, sourceDef)).connectionId(connectionId)
+            .notifySchemaChanges(true);
     when(connectionsHandler.getConnection(request.getConnectionId())).thenReturn(connectionRead);
     when(connectionsHandler.getDiff(any(), any(), any())).thenReturn(catalogDiff);
     final ConnectionReadList connectionReadList = new ConnectionReadList().connections(List.of(connectionRead));
@@ -622,7 +626,7 @@ class SchedulerHandlerTest {
     final SourceDiscoverSchemaRead actual = schedulerHandler.discoverSchemaForSourceFromSourceId(request);
     assertEquals(actual.getCatalogDiff(), catalogDiff);
     assertEquals(actual.getCatalog(), expectedActorCatalog);
-    verify(notificationWorkflow).sendSchemaChangeNotification(connectionId);
+    verify(notificationWorkflow).sendSchemaChangeNotification(connectionId, source.getWorkspaceId());
   }
 
   @Test
@@ -679,7 +683,7 @@ class SchedulerHandlerTest {
     assertEquals(actual.getCatalogDiff(), catalogDiff);
     assertEquals(actual.getCatalog(), expectedActorCatalog);
     assertEquals(actual.getConnectionStatus(), ConnectionStatus.ACTIVE);
-    verify(notificationWorkflow).sendSchemaChangeNotification(connectionId);
+    verify(notificationWorkflow).sendSchemaChangeNotification(connectionId, source.getWorkspaceId());
   }
 
   @Test
@@ -772,7 +776,8 @@ class SchedulerHandlerTest {
         CatalogHelpers.createAirbyteStream(DOGS, Field.of(NAME, JsonSchemaType.STRING))));
 
     final ConnectionRead connectionRead =
-        new ConnectionRead().syncCatalog(CatalogConverter.toApi(airbyteCatalogCurrent, sourceDef)).status(ConnectionStatus.ACTIVE).connectionId(connectionId)
+        new ConnectionRead().syncCatalog(CatalogConverter.toApi(airbyteCatalogCurrent, sourceDef)).status(ConnectionStatus.ACTIVE)
+            .connectionId(connectionId)
             .notifySchemaChanges(true);
     when(connectionsHandler.getConnection(request.getConnectionId())).thenReturn(connectionRead);
     when(connectionsHandler.getDiff(any(), any(), any())).thenReturn(catalogDiff);
@@ -796,7 +801,7 @@ class SchedulerHandlerTest {
     assertEquals(actual.getCatalog(), expectedActorCatalog);
     assertEquals(actual.getConnectionStatus(), ConnectionStatus.ACTIVE);
     verify(connectionsHandler).updateConnection(expectedConnectionUpdate);
-    verify(notificationWorkflow).sendSchemaChangeNotification(connectionId);
+    verify(notificationWorkflow).sendSchemaChangeNotification(connectionId, source.getWorkspaceId());
   }
 
   @Test
@@ -833,7 +838,8 @@ class SchedulerHandlerTest {
         CatalogHelpers.createAirbyteStream(DOGS, Field.of(NAME, JsonSchemaType.STRING))));
 
     final ConnectionRead connectionRead =
-        new ConnectionRead().syncCatalog(CatalogConverter.toApi(airbyteCatalogCurrent, sourceDef)).connectionId(connectionId).notifySchemaChanges(true);
+        new ConnectionRead().syncCatalog(CatalogConverter.toApi(airbyteCatalogCurrent, sourceDef)).connectionId(connectionId)
+            .notifySchemaChanges(true);
     when(connectionsHandler.getConnection(request.getConnectionId())).thenReturn(connectionRead);
     when(connectionsHandler.getDiff(any(), any(), any())).thenReturn(catalogDiff);
     final ConnectionReadList connectionReadList = new ConnectionReadList().connections(List.of(connectionRead));
@@ -856,7 +862,7 @@ class SchedulerHandlerTest {
     assertEquals(actual.getCatalog(), expectedActorCatalog);
     assertEquals(actual.getConnectionStatus(), ConnectionStatus.INACTIVE);
     verify(connectionsHandler).updateConnection(expectedConnectionUpdate);
-    verify(notificationWorkflow).sendSchemaChangeNotification(connectionId);
+    verify(notificationWorkflow).sendSchemaChangeNotification(connectionId, source.getWorkspaceId());
   }
 
   @Test
@@ -998,9 +1004,9 @@ class SchedulerHandlerTest {
     assertEquals(ConnectionStatus.ACTIVE, connectionUpdateValues.get(0).getStatus());
     assertEquals(ConnectionStatus.ACTIVE, connectionUpdateValues.get(1).getStatus());
     assertEquals(ConnectionStatus.INACTIVE, connectionUpdateValues.get(2).getStatus());
-    verify(notificationWorkflow).sendSchemaChangeNotification(connectionId);
-    verify(notificationWorkflow).sendSchemaChangeNotification(connectionId2);
-    verify(notificationWorkflow, times(0)).sendSchemaChangeNotification(connectionId3);
+    verify(notificationWorkflow).sendSchemaChangeNotification(connectionId, source.getWorkspaceId());
+    verify(notificationWorkflow).sendSchemaChangeNotification(connectionId2, source.getWorkspaceId());
+    verify(notificationWorkflow, times(0)).sendSchemaChangeNotification(connectionId3, source.getWorkspaceId());
   }
 
   @Test
