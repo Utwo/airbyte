@@ -120,6 +120,7 @@ class SchedulerHandlerTest {
   private static final String DOGS = "dogs";
   private static final String SHOES = "shoes";
   private static final String SKU = "sku";
+  private static final String CONNECTION_URL = "connection_url";
 
   private static final AirbyteCatalog airbyteCatalog = CatalogHelpers.createAirbyteCatalog(SHOES,
       Field.of(SKU, JsonSchemaType.STRING));
@@ -597,6 +598,7 @@ class SchedulerHandlerTest {
     when(synchronousSchedulerClient.createDiscoverSchemaJob(source, SOURCE_DOCKER_IMAGE, SOURCE_DOCKER_TAG, new Version(SOURCE_PROTOCOL_VERSION),
         false))
             .thenReturn(discoverResponse);
+    when(webUrlHelper.getConnectionUrl(source.getWorkspaceId(), connectionId)).thenReturn(CONNECTION_URL);
 
     when(discoverResponse.isSuccess()).thenReturn(true);
     when(discoverResponse.getOutput()).thenReturn(discoveredCatalogId);
@@ -626,7 +628,7 @@ class SchedulerHandlerTest {
     final SourceDiscoverSchemaRead actual = schedulerHandler.discoverSchemaForSourceFromSourceId(request);
     assertEquals(actual.getCatalogDiff(), catalogDiff);
     assertEquals(actual.getCatalog(), expectedActorCatalog);
-    verify(notificationWorkflow).sendSchemaChangeNotification(connectionId, source.getWorkspaceId());
+    verify(notificationWorkflow).sendSchemaChangeNotification(connectionId, CONNECTION_URL);
   }
 
   @Test
@@ -653,6 +655,7 @@ class SchedulerHandlerTest {
     when(synchronousSchedulerClient.createDiscoverSchemaJob(source, SOURCE_DOCKER_IMAGE, SOURCE_DOCKER_TAG, new Version(SOURCE_PROTOCOL_VERSION),
         false))
             .thenReturn(discoverResponse);
+    when(webUrlHelper.getConnectionUrl(source.getWorkspaceId(), connectionId)).thenReturn(CONNECTION_URL);
 
     when(discoverResponse.isSuccess()).thenReturn(true);
     when(discoverResponse.getOutput()).thenReturn(discoveredCatalogId);
@@ -683,7 +686,7 @@ class SchedulerHandlerTest {
     assertEquals(actual.getCatalogDiff(), catalogDiff);
     assertEquals(actual.getCatalog(), expectedActorCatalog);
     assertEquals(actual.getConnectionStatus(), ConnectionStatus.ACTIVE);
-    verify(notificationWorkflow).sendSchemaChangeNotification(connectionId, source.getWorkspaceId());
+    verify(notificationWorkflow).sendSchemaChangeNotification(connectionId, CONNECTION_URL);
   }
 
   @Test
@@ -767,6 +770,7 @@ class SchedulerHandlerTest {
     when(synchronousSchedulerClient.createDiscoverSchemaJob(source, SOURCE_DOCKER_IMAGE, SOURCE_DOCKER_TAG, new Version(SOURCE_PROTOCOL_VERSION),
         false))
             .thenReturn(discoverResponse);
+    when(webUrlHelper.getConnectionUrl(source.getWorkspaceId(), connectionId)).thenReturn(CONNECTION_URL);
 
     when(discoverResponse.isSuccess()).thenReturn(true);
     when(discoverResponse.getOutput()).thenReturn(discoveredCatalogId);
@@ -801,7 +805,7 @@ class SchedulerHandlerTest {
     assertEquals(actual.getCatalog(), expectedActorCatalog);
     assertEquals(actual.getConnectionStatus(), ConnectionStatus.ACTIVE);
     verify(connectionsHandler).updateConnection(expectedConnectionUpdate);
-    verify(notificationWorkflow).sendSchemaChangeNotification(connectionId, source.getWorkspaceId());
+    verify(notificationWorkflow).sendSchemaChangeNotification(connectionId, CONNECTION_URL);
   }
 
   @Test
@@ -829,6 +833,7 @@ class SchedulerHandlerTest {
     when(synchronousSchedulerClient.createDiscoverSchemaJob(source, SOURCE_DOCKER_IMAGE, SOURCE_DOCKER_TAG, new Version(SOURCE_PROTOCOL_VERSION),
         false))
             .thenReturn(discoverResponse);
+    when(webUrlHelper.getConnectionUrl(source.getWorkspaceId(), connectionId)).thenReturn(CONNECTION_URL);
 
     when(discoverResponse.isSuccess()).thenReturn(true);
     when(discoverResponse.getOutput()).thenReturn(discoveredCatalogId);
@@ -862,7 +867,7 @@ class SchedulerHandlerTest {
     assertEquals(actual.getCatalog(), expectedActorCatalog);
     assertEquals(actual.getConnectionStatus(), ConnectionStatus.INACTIVE);
     verify(connectionsHandler).updateConnection(expectedConnectionUpdate);
-    verify(notificationWorkflow).sendSchemaChangeNotification(connectionId, source.getWorkspaceId());
+    verify(notificationWorkflow).sendSchemaChangeNotification(connectionId, CONNECTION_URL);
   }
 
   @Test
@@ -958,6 +963,9 @@ class SchedulerHandlerTest {
     when(synchronousSchedulerClient.createDiscoverSchemaJob(source, SOURCE_DOCKER_IMAGE, SOURCE_DOCKER_TAG, new Version(SOURCE_PROTOCOL_VERSION),
         false))
             .thenReturn(discoverResponse);
+    when(webUrlHelper.getConnectionUrl(source.getWorkspaceId(), connectionId)).thenReturn(CONNECTION_URL);
+    when(webUrlHelper.getConnectionUrl(source.getWorkspaceId(), connectionId2)).thenReturn(CONNECTION_URL);
+    when(webUrlHelper.getConnectionUrl(source.getWorkspaceId(), connectionId3)).thenReturn(CONNECTION_URL);
 
     when(discoverResponse.isSuccess()).thenReturn(true);
     when(discoverResponse.getOutput()).thenReturn(discoveredCatalogId);
@@ -1004,9 +1012,9 @@ class SchedulerHandlerTest {
     assertEquals(ConnectionStatus.ACTIVE, connectionUpdateValues.get(0).getStatus());
     assertEquals(ConnectionStatus.ACTIVE, connectionUpdateValues.get(1).getStatus());
     assertEquals(ConnectionStatus.INACTIVE, connectionUpdateValues.get(2).getStatus());
-    verify(notificationWorkflow).sendSchemaChangeNotification(connectionId, source.getWorkspaceId());
-    verify(notificationWorkflow).sendSchemaChangeNotification(connectionId2, source.getWorkspaceId());
-    verify(notificationWorkflow, times(0)).sendSchemaChangeNotification(connectionId3, source.getWorkspaceId());
+    verify(notificationWorkflow).sendSchemaChangeNotification(connectionId, CONNECTION_URL);
+    verify(notificationWorkflow).sendSchemaChangeNotification(connectionId2, CONNECTION_URL);
+    verify(notificationWorkflow, times(0)).sendSchemaChangeNotification(connectionId3, CONNECTION_URL);
   }
 
   @Test
