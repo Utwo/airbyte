@@ -210,7 +210,8 @@ public class SchedulerHandler {
     final SourceCoreConfig sourceCoreConfig = new SourceCoreConfig()
         .sourceId(updatedSource.getSourceId())
         .connectionConfiguration(updatedSource.getConfiguration())
-        .sourceDefinitionId(updatedSource.getSourceDefinitionId());
+        .sourceDefinitionId(updatedSource.getSourceDefinitionId())
+        .workspaceId(updatedSource.getWorkspaceId());
 
     return checkSourceConnectionFromSourceCreate(sourceCoreConfig);
   }
